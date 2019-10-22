@@ -11,6 +11,7 @@ import {
   StyleSheet,
   View,
   Text,
+  ActivityIndicator,
 } from 'react-native';
 import {connect} from 'react-redux';
 import Geolocation from 'react-native-geolocation-service';
@@ -34,6 +35,7 @@ function HomeScreen(props) {
       longitudeDelta: 1,
     }),
   );
+  const [detail, setDetail] = useState({});
 
   useEffect(() => {
     const getPermission = async () => {
@@ -116,32 +118,50 @@ function HomeScreen(props) {
             keyboardShouldPersistTaps="handled">
             <View style={styles.viewContainer}>
               <View style={{height: Dimensions.get('screen').height - 80}}>
-                <View
-                  style={{
-                    padding: 32,
-                    flex: 1,
-                    justifyContent: 'flex-end',
-                  }}>
+                {props.location.getEstimation.status && (
                   <View
                     style={{
-                      backgroundColor: 'white',
-                      elevation: 5,
-                      borderRadius: 8,
-                      padding: 16,
+                      padding: 32,
+                      flex: 1,
+                      justifyContent: 'flex-end',
                     }}>
-                    <View style={{flexDirection: 'row'}}>
-                      <View>
-                        <Text>TransBatam : BP 123 AB</Text>
-                        <Text>Pengemudi: Reynanda</Text>
-                        <Text>Status: Diperjalanan</Text>
-                      </View>
-                      <View style={{alignItems: 'flex-end', flex: 1}}>
-                        <Text>Jarak : 120 meter</Text>
-                        <Text>Waktu: 1 menit</Text>
-                      </View>
+                    <View
+                      style={{
+                        backgroundColor: 'white',
+                        elevation: 5,
+                        borderRadius: 8,
+                        padding: 16,
+                        height: 80,
+                        justifyContent: 'center',
+                      }}>
+                      {props.location.getEstimationLoading ? (
+                        <ActivityIndicator size={32} />
+                      ) : (
+                        <View style={{flexDirection: 'row'}}>
+                          <View>
+                            <Text>
+                              TransBatam :{' '}
+                              {detail.busId && detail.busId.plateNumber}
+                            </Text>
+                            <Text>
+                              Pengemudi: {detail.busId && detail.busId.driver}
+                            </Text>
+                          </View>
+                          <View style={{alignItems: 'flex-end', flex: 1}}>
+                            <Text>
+                              Jarak :{' '}
+                              {props.location.getEstimation.distance.text}
+                            </Text>
+                            <Text>
+                              Waktu:{' '}
+                              {props.location.getEstimation.duration.text}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
                     </View>
                   </View>
-                </View>
+                )}
                 <MapView
                   provider="google"
                   region={{
@@ -165,7 +185,7 @@ function HomeScreen(props) {
                       longitudeDelta: 0.025,
                     }}
                   />
-                  {props.location.location.data.map(el => (
+                  {props.location.getBusLocation.data.map(el => (
                     <Marker
                       key={el._id}
                       coordinate={{
@@ -175,6 +195,7 @@ function HomeScreen(props) {
                         longitudeDelta: 0.025,
                       }}
                       onPress={() => {
+                        setDetail(el);
                         props.getEstimation(
                           {
                             latitude: region.latitude,

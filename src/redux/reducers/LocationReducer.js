@@ -1,11 +1,23 @@
 export default (
   state = {
-    location: {
+    getBusLocation: {
       length: 0,
       data: [],
     },
-    loading: false,
-    message: '',
+    getBusLocationLoading: false,
+    getBusLocationMessage: '',
+    getEstimation: {
+      distance: {
+        text: '0 km',
+        value: 0,
+      },
+      duration: {
+        text: '0 mins',
+        value: 0,
+      },
+    },
+    getEstimationLoading: false,
+    getEstimationMessage: '',
   },
   action,
 ) => {
@@ -13,21 +25,40 @@ export default (
     case 'GET_BUS_LOCATION':
       return {
         ...state,
-        loading: true,
-        message: '',
+        getBusLocationLoading: true,
+        getBusLocationMessage: '',
       };
     case 'BUS_LOCATION_RESULT':
       return {
         ...state,
-        location: action.payload,
-        loading: false,
-        message: '',
+        getBusLocation: action.payload,
+        getBusLocationLoading: false,
+        getBusLocationMessage: '',
       };
     case 'BUS_LOCATION_ERROR':
       return {
         ...state,
-        loading: false,
-        message: action.payload,
+        getBusLocationLoading: false,
+        getBusLocationMessage: action.payload,
+      };
+    case 'GET_ESTIMATION':
+      return {
+        ...state,
+        getEstimationLoading: true,
+        getEstimationMessage: '',
+      };
+    case 'ESTIMATION_RESULT':
+      return {
+        ...state,
+        getEstimation: action.payload,
+        getEstimationLoading: false,
+        getEstimationMessage: '',
+      };
+    case 'ESTIMATION_ERROR':
+      return {
+        ...state,
+        getEstimationLoading: false,
+        getEstimationMessage: action.payload,
       };
     default:
       return state;
