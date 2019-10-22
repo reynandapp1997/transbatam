@@ -8,7 +8,12 @@
 import React, {Component} from 'react';
 import {createAppContainer, createSwitchNavigator} from 'react-navigation';
 import {createStackNavigator} from 'react-navigation-stack';
+import createSagaMiddleware from 'redux-saga';
+import {createStore, applyMiddleware} from 'redux';
+import {Provider} from 'react-redux';
 
+import reducers from './src/redux/reducers';
+import rootSaga from './src/redux/sagas';
 import HomeScreen from './src/screens/HomeScreen';
 import SplashScreen from './src/screens/SplashScreen';
 
@@ -32,9 +37,18 @@ const SwitchNavigator = createSwitchNavigator({
 
 const AppContainer = createAppContainer(SwitchNavigator);
 
+const sagaMiddleware = createSagaMiddleware();
+
+const store = createStore(reducers, applyMiddleware(sagaMiddleware));
+sagaMiddleware.run(rootSaga);
+
 class App extends Component {
   render() {
-    return <AppContainer />;
+    return (
+      <Provider store={store}>
+        <AppContainer />
+      </Provider>
+    );
   }
 }
 
