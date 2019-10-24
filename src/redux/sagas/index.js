@@ -49,7 +49,32 @@ function* fetchEstimation(params) {
   yield put(result);
 }
 
-function* geBusLocationWatcher() {
+function* updateBusLocation(params) {
+  const {prevProps, newLocation} = params.payload;
+  const newProps = prevProps.data.map(el => {
+    if (el.busId._id === newLocation.busId) {
+      return {
+        ...el,
+        location: {
+          coordinates: {
+            latitude: newLocation.location.coordinates.latitude,
+            longitude: newLocation.location.coordinates.longitude,
+          },
+        },
+      };
+    }
+    return {
+      ...el,
+    };
+  });
+  const payload = {
+    length: newProps.length,
+    data: newProps,
+  };
+  yield put({type: 'BUS_LOCATION_RESULT', payload});
+}
+
+function* getBusLocationWatcher() {
   yield takeLatest('GET_BUS_LOCATION', fetchBusLocation.bind(this));
 }
 
@@ -57,6 +82,14 @@ function* getEstimationWatcher() {
   yield takeLatest('GET_ESTIMATION', fetchEstimation.bind(this));
 }
 
+function* updateBusLocationWatcher() {
+  yield takeLatest('UPDATE_BUS_LOCATION', updateBusLocation.bind(this));
+}
+
 export default function* rootSaga() {
-  yield all([geBusLocationWatcher(), getEstimationWatcher()]);
+  yield all([
+    getBusLocationWatcher(),
+    getEstimationWatcher(),
+    updateBusLocationWatcher(),
+  ]);
 }

@@ -9,3 +9,11 @@ export const getEstimation = (origins, destinations) => ({
     destinations,
   },
 });
+
+export const updateBusLocation = (prevProps, newLocation) => ({
+  type: 'UPDATE_BUS_LOCATION',
+  payload: {
+    prevProps,
+    newLocation,
+  },
+});
