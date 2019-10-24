@@ -52,7 +52,6 @@ class HomeScreen extends Component {
     const listen = socket('https://transbatam-api.herokuapp.com');
     listen.on('location', e => {
       if (e.type === 'ADD_LOCATION') {
-        console.log('update');
         this.update(e.payload);
       }
     });
