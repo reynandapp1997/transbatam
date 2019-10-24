@@ -83,7 +83,7 @@ class HomeScreen extends Component {
             latitudeDelta: 0.025,
             longitudeDelta: 0.025,
           },
-          500,
+          1000,
         );
         setTimeout(() => {
           this.setState({
@@ -100,7 +100,7 @@ class HomeScreen extends Component {
               longitudeDelta: 0,
             },
           });
-        }, 500);
+        }, 1000);
       },
       error => {
         console.log(error);
@@ -115,14 +115,20 @@ class HomeScreen extends Component {
 
   update = lastLocation => {
     const {latitude, longitude} = lastLocation.location.coordinates;
-    this.moveMarker(latitude, longitude, 1000, this[lastLocation.busId]);
+    this.moveMarker(
+      latitude,
+      longitude,
+      1000,
+      this[lastLocation.busId],
+      lastLocation.busId,
+    );
     this.props.updateBusLocation(
       this.props.location.getBusLocation,
       lastLocation,
     );
   };
 
-  moveMarker = (latitude, longitude, duration, marker) => {
+  moveMarker = (latitude, longitude, duration, marker, busId) => {
     if (marker) {
       marker.animateMarkerToCoordinate(
         {
@@ -131,6 +137,31 @@ class HomeScreen extends Component {
         },
         duration,
       );
+      if (this.state.detail.busId) {
+        if (this.state.detail.busId._id === busId) {
+          this.mapViewRef._component.animateToRegion(
+            {
+              latitude,
+              longitude,
+              latitudeDelta: 0.025,
+              longitudeDelta: 0.025,
+            },
+            1000,
+          );
+          setTimeout(() => {
+            this.props.getEstimation(
+              {
+                latitude: this.state.coordinate.latitude,
+                longitude: this.state.coordinate.longitude,
+              },
+              {
+                latitude,
+                longitude,
+              },
+            );
+          }, 1000);
+        }
+      }
     }
   };
 
@@ -228,7 +259,7 @@ class HomeScreen extends Component {
                             latitudeDelta: 0.025,
                             longitudeDelta: 0.025,
                           },
-                          500,
+                          1000,
                         );
                         setTimeout(() => {
                           this.setState({
@@ -240,10 +271,10 @@ class HomeScreen extends Component {
                             },
                             detail: {},
                           });
-                        }, 500);
+                        }, 1000);
                         Animated.timing(this.state.height, {
                           toValue: -128,
-                          duration: 500,
+                          duration: 1000,
                         }).start();
                       }}
                     />
@@ -270,7 +301,7 @@ class HomeScreen extends Component {
                                 latitudeDelta: 0.025,
                                 longitudeDelta: 0.025,
                               },
-                              500,
+                              1000,
                             );
                             setTimeout(() => {
                               this.setState({
@@ -292,10 +323,10 @@ class HomeScreen extends Component {
                                   longitude: el.location.coordinates.longitude,
                                 },
                               );
-                            }, 500);
+                            }, 1000);
                             Animated.timing(this.state.height, {
                               toValue: 0,
-                              duration: 500,
+                              duration: 1000,
                             }).start();
                           }
                         }}
