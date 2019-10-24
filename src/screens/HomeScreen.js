@@ -24,8 +24,8 @@ function HomeScreen(props) {
   const mapViewRef = useRef(null);
   const markerRef = useRef(null);
   const [region, setRegion] = useState({
-    latitude: 90,
-    longitude: 180,
+    latitude: 1.1301,
+    longitude: 104.0529,
     latitudeDelta: 1,
     longitudeDelta: 1,
   });
@@ -56,12 +56,24 @@ function HomeScreen(props) {
     const getCurrentLocation = () => {
       Geolocation.getCurrentPosition(
         success => {
-          setRegion({
-            latitude: success.coords.latitude,
-            longitude: success.coords.longitude,
-            latitudeDelta: 0,
-            longitudeDelta: 0,
-          });
+          mapViewRef.current._component.animateToRegion(
+            {
+              latitude: success.coords.latitude,
+              longitude: success.coords.longitude,
+              latitudeDelta: 0.025,
+              longitudeDelta: 0.025,
+            },
+            1000,
+          );
+          setTimeout(() => {
+            setRegion({
+              latitude: success.coords.latitude,
+              longitude: success.coords.longitude,
+              latitudeDelta: 0,
+              longitudeDelta: 0,
+            });
+            setDetail({});
+          }, 1000);
           setCoordinate({
             latitude: success.coords.latitude,
             longitude: success.coords.longitude,
