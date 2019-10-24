@@ -17,6 +17,7 @@ import {
 import {connect} from 'react-redux';
 import Geolocation from 'react-native-geolocation-service';
 import MapView, {Marker} from 'react-native-maps';
+import socket from 'socket.io-client';
 
 import {getBusLocation, getEstimation} from '../redux/actions';
 
@@ -39,6 +40,12 @@ function HomeScreen(props) {
   const [height, setHeight] = useState(new Animated.Value(-128));
 
   useEffect(() => {
+    const listen = socket('https://transbatam-api.herokuapp.com');
+    listen.on('location', e => {
+      if (e.type === 'ADD_LOCATION') {
+        update(e.payload);
+      }
+    });
     const getPermission = async () => {
       if (Platform.OS === 'android') {
         await PermissionsAndroid.request(
@@ -72,14 +79,13 @@ function HomeScreen(props) {
               latitudeDelta: 0,
               longitudeDelta: 0,
             });
-            setDetail({});
+            setCoordinate({
+              latitude: success.coords.latitude,
+              longitude: success.coords.longitude,
+              latitudeDelta: 0,
+              longitudeDelta: 0,
+            });
           }, 1000);
-          setCoordinate({
-            latitude: success.coords.latitude,
-            longitude: success.coords.longitude,
-            latitudeDelta: 0,
-            longitudeDelta: 0,
-          });
         },
         error => {
           console.log(error);
@@ -95,6 +101,10 @@ function HomeScreen(props) {
     props.getBusLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const update = lastLocation => {
+    console.log(lastLocation);
+  };
 
   const moveMarker = (latitude, longitude, duration) => {
     if (Platform.OS === 'android') {
@@ -165,10 +175,18 @@ function HomeScreen(props) {
                         </View>
                         <View style={{alignItems: 'flex-end', flex: 1}}>
                           <Text>
-                            Jarak : {props.location.getEstimation.distance.text}
+                            Jarak :{' '}
+                            {
+                              props.location.getEstimation.rows[0].elements[0]
+                                .distance.text
+                            }
                           </Text>
                           <Text>
-                            Waktu: {props.location.getEstimation.duration.text}
+                            Waktu:{' '}
+                            {
+                              props.location.getEstimation.rows[0].elements[0]
+                                .duration.text
+                            }
                           </Text>
                         </View>
                       </View>

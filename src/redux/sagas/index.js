@@ -37,7 +37,7 @@ function* fetchEstimation(params) {
       if (response.status === 'OK') {
         return {
           type: 'ESTIMATION_RESULT',
-          payload: response.rows[0].elements[0],
+          payload: response,
         };
       } else {
         return {type: 'ESTIMATION_ERROR', payload: response.status};

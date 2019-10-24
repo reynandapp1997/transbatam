@@ -7,14 +7,26 @@ export default (
     getBusLocationLoading: false,
     getBusLocationMessage: '',
     getEstimation: {
-      distance: {
-        text: '0 km',
-        value: 0,
-      },
-      duration: {
-        text: '0 mins',
-        value: 0,
-      },
+      destination_addresses: [''],
+      origin_addresses: [''],
+      rows: [
+        {
+          elements: [
+            {
+              distance: {
+                text: '0 km',
+                value: 0,
+              },
+              duration: {
+                text: '0 mins',
+                value: 0,
+              },
+              status: 'OK',
+            },
+          ],
+        },
+      ],
+      status: 'OK',
     },
     getEstimationLoading: false,
     getEstimationMessage: '',
