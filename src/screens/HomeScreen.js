@@ -12,30 +12,31 @@ import {
   View,
   Text,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import {connect} from 'react-redux';
 import Geolocation from 'react-native-geolocation-service';
-import MapView, {Marker, AnimatedRegion} from 'react-native-maps';
+import MapView, {Marker} from 'react-native-maps';
 
 import {getBusLocation, getEstimation} from '../redux/actions';
 
 function HomeScreen(props) {
-  const marker = useRef(null);
+  const mapViewRef = useRef(null);
+  const markerRef = useRef(null);
   const [region, setRegion] = useState({
     latitude: 90,
     longitude: 180,
     latitudeDelta: 1,
     longitudeDelta: 1,
   });
-  const [coordinate, setCoordinate] = useState(
-    new AnimatedRegion({
-      latitude: 1.125802,
-      longitude: 104.056964,
-      latitudeDelta: 1,
-      longitudeDelta: 1,
-    }),
-  );
+  const [coordinate, setCoordinate] = useState({
+    latitude: 90,
+    longitude: 180,
+    latitudeDelta: 1,
+    longitudeDelta: 1,
+  });
   const [detail, setDetail] = useState({});
+  const [height, setHeight] = useState(new Animated.Value(-128));
 
   useEffect(() => {
     const getPermission = async () => {
@@ -61,6 +62,12 @@ function HomeScreen(props) {
             latitudeDelta: 0,
             longitudeDelta: 0,
           });
+          setCoordinate({
+            latitude: success.coords.latitude,
+            longitude: success.coords.longitude,
+            latitudeDelta: 0,
+            longitudeDelta: 0,
+          });
         },
         error => {
           console.log(error);
@@ -79,7 +86,7 @@ function HomeScreen(props) {
 
   const moveMarker = (latitude, longitude, duration) => {
     if (Platform.OS === 'android') {
-      marker.current._component.animateMarkerToCoordinate(
+      markerRef.current._component.animateMarkerToCoordinate(
         {
           latitude,
           longitude,
@@ -118,51 +125,46 @@ function HomeScreen(props) {
             keyboardShouldPersistTaps="handled">
             <View style={styles.viewContainer}>
               <View style={{height: Dimensions.get('screen').height - 80}}>
-                {props.location.getEstimation.status && (
-                  <View
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: 'flex-end',
+                  }}>
+                  <Animated.View
                     style={{
-                      padding: 32,
-                      flex: 1,
-                      justifyContent: 'flex-end',
+                      backgroundColor: 'white',
+                      elevation: 5,
+                      height: 128,
+                      bottom: height,
+                      justifyContent: 'center',
                     }}>
-                    <View
-                      style={{
-                        backgroundColor: 'white',
-                        elevation: 5,
-                        borderRadius: 8,
-                        padding: 16,
-                        height: 80,
-                        justifyContent: 'center',
-                      }}>
-                      {props.location.getEstimationLoading ? (
-                        <ActivityIndicator size={32} />
-                      ) : (
-                        <View style={{flexDirection: 'row'}}>
-                          <View>
-                            <Text>
-                              TransBatam :{' '}
-                              {detail.busId && detail.busId.plateNumber}
-                            </Text>
-                            <Text>
-                              Pengemudi: {detail.busId && detail.busId.driver}
-                            </Text>
-                          </View>
-                          <View style={{alignItems: 'flex-end', flex: 1}}>
-                            <Text>
-                              Jarak :{' '}
-                              {props.location.getEstimation.distance.text}
-                            </Text>
-                            <Text>
-                              Waktu:{' '}
-                              {props.location.getEstimation.duration.text}
-                            </Text>
-                          </View>
+                    {props.location.getEstimationLoading ? (
+                      <ActivityIndicator size={32} />
+                    ) : detail.busId ? (
+                      <View style={{flexDirection: 'row', padding: 16}}>
+                        <View>
+                          <Text>
+                            TransBatam :{' '}
+                            {detail.busId && detail.busId.plateNumber}
+                          </Text>
+                          <Text>
+                            Pengemudi: {detail.busId && detail.busId.driver}
+                          </Text>
                         </View>
-                      )}
-                    </View>
-                  </View>
-                )}
-                <MapView
+                        <View style={{alignItems: 'flex-end', flex: 1}}>
+                          <Text>
+                            Jarak : {props.location.getEstimation.distance.text}
+                          </Text>
+                          <Text>
+                            Waktu: {props.location.getEstimation.duration.text}
+                          </Text>
+                        </View>
+                      </View>
+                    ) : null}
+                  </Animated.View>
+                </View>
+                <MapView.Animated
+                  ref={mapViewRef}
                   provider="google"
                   region={{
                     latitude: region.latitude,
@@ -179,10 +181,34 @@ function HomeScreen(props) {
                   showsTraffic>
                   <Marker
                     coordinate={{
-                      latitude: region.latitude,
-                      longitude: region.longitude,
+                      latitude: coordinate.latitude,
+                      longitude: coordinate.longitude,
                       latitudeDelta: 0.025,
                       longitudeDelta: 0.025,
+                    }}
+                    onPress={() => {
+                      mapViewRef.current._component.animateToRegion(
+                        {
+                          latitude: coordinate.latitude,
+                          longitude: coordinate.longitude,
+                          latitudeDelta: 0.025,
+                          longitudeDelta: 0.025,
+                        },
+                        1000,
+                      );
+                      setTimeout(() => {
+                        setRegion({
+                          latitude: coordinate.latitude,
+                          longitude: coordinate.longitude,
+                          latitudeDelta: 0.025,
+                          longitudeDelta: 0.025,
+                        });
+                        setDetail({});
+                      }, 1000);
+                      Animated.timing(height, {
+                        toValue: -128,
+                        duration: 1000,
+                      }).start();
                     }}
                   />
                   {props.location.getBusLocation.data.map(el => (
@@ -195,21 +221,47 @@ function HomeScreen(props) {
                         longitudeDelta: 0.025,
                       }}
                       onPress={() => {
-                        setDetail(el);
-                        props.getEstimation(
-                          {
-                            latitude: region.latitude,
-                            longitude: region.longitude,
-                          },
-                          {
-                            latitude: el.location.coordinates.latitude,
-                            longitude: el.location.coordinates.longitude,
-                          },
-                        );
+                        if (
+                          // eslint-disable-next-line eqeqeq
+                          el.location.coordinates.latitude != region.latitude
+                        ) {
+                          mapViewRef.current._component.animateToRegion(
+                            {
+                              latitude: el.location.coordinates.latitude,
+                              longitude: el.location.coordinates.longitude,
+                              latitudeDelta: 0.025,
+                              longitudeDelta: 0.025,
+                            },
+                            1000,
+                          );
+                          setTimeout(() => {
+                            setRegion({
+                              latitude: el.location.coordinates.latitude,
+                              longitude: el.location.coordinates.longitude,
+                              latitudeDelta: 0.025,
+                              longitudeDelta: 0.025,
+                            });
+                            setDetail(el);
+                            props.getEstimation(
+                              {
+                                latitude: coordinate.latitude,
+                                longitude: coordinate.longitude,
+                              },
+                              {
+                                latitude: el.location.coordinates.latitude,
+                                longitude: el.location.coordinates.longitude,
+                              },
+                            );
+                          }, 1000);
+                          Animated.timing(height, {
+                            toValue: 0,
+                            duration: 1000,
+                          }).start();
+                        }
                       }}
                     />
                   ))}
-                </MapView>
+                </MapView.Animated>
               </View>
               <View style={{height: 80}} />
             </View>
