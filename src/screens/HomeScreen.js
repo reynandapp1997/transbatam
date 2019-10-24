@@ -213,7 +213,7 @@ class HomeScreen extends Component {
                       position: 'absolute',
                     }}
                     showsTraffic>
-                    {/* <Marker
+                    <Marker
                       coordinate={{
                         latitude: this.state.coordinate.latitude,
                         longitude: this.state.coordinate.longitude,
@@ -246,7 +246,7 @@ class HomeScreen extends Component {
                           duration: 500,
                         }).start();
                       }}
-                    /> */}
+                    />
                     {this.props.location.getBusLocation.data.map(el => (
                       <Marker
                         ref={ref => (this[el.busId._id] = ref)}
