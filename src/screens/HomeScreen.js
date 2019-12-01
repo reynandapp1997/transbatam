@@ -13,6 +13,7 @@ import {
   Text,
   ActivityIndicator,
   Animated,
+  Easing,
 } from 'react-native';
 import {connect} from 'react-redux';
 import Geolocation from 'react-native-geolocation-service';
@@ -82,7 +83,7 @@ class HomeScreen extends Component {
             latitudeDelta: 0.025,
             longitudeDelta: 0.025,
           },
-          1000,
+          500,
         );
         setTimeout(() => {
           this.setState({
@@ -99,7 +100,7 @@ class HomeScreen extends Component {
               longitudeDelta: 0,
             },
           });
-        }, 1000);
+        }, 500);
       },
       error => {
         console.log(error);
@@ -117,7 +118,7 @@ class HomeScreen extends Component {
     this.moveMarker(
       latitude,
       longitude,
-      1000,
+      500,
       this[lastLocation.busId],
       lastLocation.busId,
     );
@@ -145,7 +146,7 @@ class HomeScreen extends Component {
               latitudeDelta: 0.025,
               longitudeDelta: 0.025,
             },
-            1000,
+            500,
           );
           setTimeout(() => {
             this.props.getEstimation(
@@ -158,7 +159,7 @@ class HomeScreen extends Component {
                 longitude,
               },
             );
-          }, 1000);
+          }, 500);
         }
       }
     }
@@ -167,7 +168,7 @@ class HomeScreen extends Component {
   render() {
     return (
       <>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar barStyle="light-content" backgroundColor="#072F5F" />
         <SafeAreaView>
           <KeyboardAvoidingView
             behavior="height"
@@ -258,7 +259,7 @@ class HomeScreen extends Component {
                             latitudeDelta: 0.025,
                             longitudeDelta: 0.025,
                           },
-                          1000,
+                          500,
                         );
                         setTimeout(() => {
                           this.setState({
@@ -270,10 +271,11 @@ class HomeScreen extends Component {
                             },
                             detail: {},
                           });
-                        }, 1000);
+                        }, 500);
                         Animated.timing(this.state.height, {
                           toValue: -128,
-                          duration: 1000,
+                          duration: 500,
+                          easing: Easing.in(),
                         }).start();
                       }}
                     />
@@ -287,6 +289,7 @@ class HomeScreen extends Component {
                           latitudeDelta: 0.025,
                           longitudeDelta: 0.025,
                         }}
+                        image={require('../assets/bus.png')}
                         onPress={() => {
                           if (
                             // eslint-disable-next-line eqeqeq
@@ -300,7 +303,7 @@ class HomeScreen extends Component {
                                 latitudeDelta: 0.025,
                                 longitudeDelta: 0.025,
                               },
-                              1000,
+                              500,
                             );
                             setTimeout(() => {
                               this.setState({
@@ -322,10 +325,11 @@ class HomeScreen extends Component {
                                   longitude: el.location.coordinates.longitude,
                                 },
                               );
-                            }, 1000);
+                            }, 500);
                             Animated.timing(this.state.height, {
                               toValue: 0,
-                              duration: 1000,
+                              duration: 500,
+                              easing: Easing.in(),
                             }).start();
                           }
                         }}
