@@ -19,12 +19,15 @@ import {connect} from 'react-redux';
 import Geolocation from 'react-native-geolocation-service';
 import MapView, {Marker} from 'react-native-maps';
 import socket from 'socket.io-client';
+import MapViewDirections from 'react-native-maps-directions';
 
 import {
   getBusLocation,
   getEstimation,
   updateBusLocation,
 } from '../redux/actions';
+
+const GOOGLE_MAPS_APIKEY = 'yourapigoeshere';
 
 class HomeScreen extends Component {
   constructor(props) {
@@ -37,6 +40,12 @@ class HomeScreen extends Component {
         longitudeDelta: 1,
       },
       coordinate: {
+        latitude: 90,
+        longitude: 180,
+        latitudeDelta: 1,
+        longitudeDelta: 1,
+      },
+      destination: {
         latitude: 90,
         longitude: 180,
         latitudeDelta: 1,
@@ -228,6 +237,20 @@ class HomeScreen extends Component {
                       ) : null}
                     </Animated.View>
                   </View>
+                  {this.props.location.getBusLocationLoading && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        zIndex: 2,
+                        width: Dimensions.get('screen').width,
+                        height: Dimensions.get('screen').height,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                      }}>
+                      <ActivityIndicator color="yellow" size={32} />
+                    </View>
+                  )}
                   <MapView.Animated
                     ref={ref => (this.mapViewRef = ref)}
                     provider="google"
@@ -242,8 +265,17 @@ class HomeScreen extends Component {
                       height: Dimensions.get('screen').height - 80,
                       zIndex: 0,
                       position: 'absolute',
-                    }}
-                    showsTraffic>
+                    }}>
+                    {this.state.coordinate.latitude !==
+                      this.state.destination.latitude && (
+                      <MapViewDirections
+                        origin={this.state.coordinate}
+                        destination={this.state.destination}
+                        apikey={GOOGLE_MAPS_APIKEY}
+                        strokeWidth={3}
+                        strokeColor="#072F5F"
+                      />
+                    )}
                     <Marker
                       coordinate={{
                         latitude: this.state.coordinate.latitude,
@@ -264,6 +296,12 @@ class HomeScreen extends Component {
                         setTimeout(() => {
                           this.setState({
                             region: {
+                              latitude: this.state.coordinate.latitude,
+                              longitude: this.state.coordinate.longitude,
+                              latitudeDelta: 0.025,
+                              longitudeDelta: 0.025,
+                            },
+                            destination: {
                               latitude: this.state.coordinate.latitude,
                               longitude: this.state.coordinate.longitude,
                               latitudeDelta: 0.025,
@@ -308,6 +346,12 @@ class HomeScreen extends Component {
                             setTimeout(() => {
                               this.setState({
                                 region: {
+                                  latitude: el.location.coordinates.latitude,
+                                  longitude: el.location.coordinates.longitude,
+                                  latitudeDelta: 0.025,
+                                  longitudeDelta: 0.025,
+                                },
+                                destination: {
                                   latitude: el.location.coordinates.latitude,
                                   longitude: el.location.coordinates.longitude,
                                   latitudeDelta: 0.025,
