@@ -14,12 +14,16 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Button,
+  Picker,
 } from 'react-native';
 import {connect} from 'react-redux';
 import Geolocation from 'react-native-geolocation-service';
 import MapView, {Marker} from 'react-native-maps';
 import socket from 'socket.io-client';
 import MapViewDirections from 'react-native-maps-directions';
+import ActionButton from 'react-native-action-button';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import {
   getBusLocation,
@@ -53,6 +57,10 @@ class HomeScreen extends Component {
       },
       detail: {},
       height: new Animated.Value(-128),
+      showActionButton: true,
+      filterHeight: new Animated.Value(-384),
+      origins: '',
+      destinations: '',
     };
   }
 
@@ -175,6 +183,27 @@ class HomeScreen extends Component {
   };
 
   render() {
+    let busLocation = this.props.location.getBusLocation.data;
+    if (this.state.origins && this.state.destinations) {
+      busLocation = this.props.location.getBusLocation.data.filter(
+        el =>
+          el.busId.entryPoint.includes(this.state.origins) &&
+          el.busId.entryPoint.includes(this.state.destinations),
+      );
+    }
+    const halte = [
+      'Halte Politeknik Negeri Batam',
+      'Halte Franky',
+      'Halte Duta Mas',
+      'Halte Simpang Kabil',
+      'Halte Casa Panbil',
+      'Halte Muka Kuning',
+      'Halte Tiban',
+      'Halte UIB',
+      'Halte Permata',
+      'Halte Pantai Permata',
+      'Halte BCS',
+    ];
     return (
       <>
         <StatusBar barStyle="light-content" backgroundColor="#072F5F" />
@@ -193,6 +222,68 @@ class HomeScreen extends Component {
                       flex: 1,
                       justifyContent: 'flex-end',
                     }}>
+                    {this.state.showActionButton && (
+                      <ActionButton
+                        onPress={() => {
+                          this.setState({showActionButton: false});
+                          Animated.timing(this.state.filterHeight, {
+                            toValue: -128,
+                            duration: 500,
+                            easing: Easing.in(),
+                          }).start();
+                        }}
+                        style={{zIndex: 1}}
+                        buttonColor="#072F5F"
+                        renderIcon={() => (
+                          <Icon name="directions" color="yellow" size={24} />
+                        )}
+                      />
+                    )}
+                    <Animated.View
+                      style={{
+                        backgroundColor: 'white',
+                        elevation: 5,
+                        height: 256,
+                        bottom: this.state.filterHeight,
+                        zIndex: 6,
+                        padding: 16,
+                      }}>
+                      <View>
+                        <Text>Dari</Text>
+                        <Picker
+                          selectedValue={this.state.origins}
+                          onValueChange={e => {
+                            this.setState({origins: e});
+                          }}>
+                          {halte.map(el => (
+                            <Picker.Item label={el} value={el} />
+                          ))}
+                        </Picker>
+                      </View>
+                      <View>
+                        <Text>Tujuan</Text>
+                        <Picker
+                          selectedValue={this.state.destinations}
+                          onValueChange={e => {
+                            this.setState({destinations: e});
+                          }}>
+                          {halte.map(el => (
+                            <Picker.Item label={el} value={el} />
+                          ))}
+                        </Picker>
+                      </View>
+                      <Button
+                        title="Filter"
+                        onPress={() => {
+                          this.setState({showActionButton: true});
+                          Animated.timing(this.state.filterHeight, {
+                            toValue: -384,
+                            duration: 500,
+                            easing: Easing.in(),
+                          }).start();
+                        }}
+                      />
+                    </Animated.View>
                     <Animated.View
                       style={{
                         backgroundColor: 'white',
@@ -269,8 +360,8 @@ class HomeScreen extends Component {
                     {this.state.coordinate.latitude !==
                       this.state.destination.latitude && (
                       <MapViewDirections
-                        origin={this.state.coordinate}
-                        destination={this.state.destination}
+                        destination={this.state.coordinate}
+                        origin={this.state.destination}
                         apikey={GOOGLE_MAPS_APIKEY}
                         strokeWidth={3}
                         strokeColor="#072F5F"
@@ -308,6 +399,7 @@ class HomeScreen extends Component {
                               longitudeDelta: 0.025,
                             },
                             detail: {},
+                            showActionButton: true,
                           });
                         }, 500);
                         Animated.timing(this.state.height, {
@@ -315,9 +407,14 @@ class HomeScreen extends Component {
                           duration: 500,
                           easing: Easing.in(),
                         }).start();
+                        Animated.timing(this.state.filterHeight, {
+                          toValue: -384,
+                          duration: 500,
+                          easing: Easing.in(),
+                        }).start();
                       }}
                     />
-                    {this.props.location.getBusLocation.data.map(el => (
+                    {busLocation.map(el => (
                       <Marker
                         ref={ref => (this[el.busId._id] = ref)}
                         key={el._id}
@@ -358,6 +455,7 @@ class HomeScreen extends Component {
                                   longitudeDelta: 0.025,
                                 },
                                 detail: el,
+                                showActionButton: false,
                               });
                               this.props.getEstimation(
                                 {
@@ -372,6 +470,11 @@ class HomeScreen extends Component {
                             }, 500);
                             Animated.timing(this.state.height, {
                               toValue: 0,
+                              duration: 500,
+                              easing: Easing.in(),
+                            }).start();
+                            Animated.timing(this.state.filterHeight, {
+                              toValue: -384,
                               duration: 500,
                               easing: Easing.in(),
                             }).start();
