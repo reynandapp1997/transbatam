@@ -1,21 +1,15 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, {Component} from 'react';
 import {
-  SafeAreaView,
-  KeyboardAvoidingView,
-  ScrollView,
-  StatusBar,
   Dimensions,
   PermissionsAndroid,
   Platform,
   StyleSheet,
   View,
-  Text,
   ActivityIndicator,
   Animated,
   Easing,
   Button,
-  Picker,
 } from 'react-native';
 import {connect} from 'react-redux';
 import Geolocation from 'react-native-geolocation-service';
@@ -25,6 +19,10 @@ import MapViewDirections from 'react-native-maps-directions';
 import ActionButton from 'react-native-action-button';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
+import Container from '../components/Container';
+import HalteOptions from '../components/HalteOptions';
+import InformationCard from '../components/InformationCard';
+import LoadingIndicator from '../components/LoadingIndicator';
 import {
   getBusLocation,
   getEstimation,
@@ -67,6 +65,10 @@ class HomeScreen extends Component {
   componentDidMount() {
     this.getPermission();
     this.props.getBusLocation();
+    this.listenToWebSocket();
+  }
+
+  listenToWebSocket = () => {
     const listen = socket('https://transbatam-api.herokuapp.com');
     listen.on('location', e => {
       if (
@@ -76,7 +78,7 @@ class HomeScreen extends Component {
         this.update(e.payload);
       }
     });
-  }
+  };
 
   getPermission = async () => {
     if (Platform.OS === 'android') {
@@ -310,6 +312,15 @@ class HomeScreen extends Component {
     }
   };
 
+  showActionButton = () => {
+    this.setState({showActionButton: false});
+    Animated.timing(this.state.filterHeight, {
+      toValue: -128,
+      duration: 1000,
+      easing: Easing.in(),
+    }).start();
+  };
+
   render() {
     let busLocation = this.props.location.getBusLocation.data;
     if (this.state.origins && this.state.destinations) {
@@ -333,216 +344,139 @@ class HomeScreen extends Component {
       'Halte BCS',
     ];
     return (
-      <>
-        <StatusBar barStyle="light-content" backgroundColor="#072F5F" />
-        <SafeAreaView>
-          <KeyboardAvoidingView
-            behavior="height"
-            style={styles.container}
-            keyboardVerticalOffset={30}>
-            <ScrollView
-              contentInsetAdjustmentBehavior="automatic"
-              keyboardShouldPersistTaps="handled">
-              <View style={styles.viewContainer}>
-                <View style={{height: Dimensions.get('screen').height - 80}}>
-                  <View
-                    style={{
-                      flex: 1,
-                      justifyContent: 'flex-end',
-                    }}>
-                    {this.state.showActionButton && (
-                      <ActionButton
-                        onPress={() => {
-                          this.setState({showActionButton: false});
-                          Animated.timing(this.state.filterHeight, {
-                            toValue: -128,
-                            duration: 1000,
-                            easing: Easing.in(),
-                          }).start();
-                        }}
-                        style={{zIndex: 1}}
-                        buttonColor="#072F5F"
-                        renderIcon={() => (
-                          <Icon name="directions" color="yellow" size={24} />
-                        )}
-                      />
-                    )}
-                    <Animated.View
-                      style={{
-                        backgroundColor: 'white',
-                        elevation: 5,
-                        height: 256,
-                        bottom: this.state.filterHeight,
-                        zIndex: 6,
-                        padding: 16,
-                      }}>
-                      <View>
-                        <Text>Dari</Text>
-                        <Picker
-                          selectedValue={this.state.origins}
-                          onValueChange={e => {
-                            this.setState({origins: e});
-                          }}>
-                          <Picker.Item label="Pilih Halte" value="" />
-                          {halte.map((el, index) => (
-                            <Picker.Item key={index} label={el} value={el} />
-                          ))}
-                        </Picker>
-                      </View>
-                      <View>
-                        <Text>Tujuan</Text>
-                        <Picker
-                          selectedValue={this.state.destinations}
-                          onValueChange={e => {
-                            this.setState({destinations: e});
-                          }}>
-                          <Picker.Item label="Pilih Halte" value="" />
-                          {halte.map((el, index) => (
-                            <Picker.Item key={index} label={el} value={el} />
-                          ))}
-                        </Picker>
-                      </View>
-                      <Button
-                        title="Filter"
-                        onPress={() => {
-                          this.setState({showActionButton: true});
-                          Animated.timing(this.state.filterHeight, {
-                            toValue: -384,
-                            duration: 1000,
-                            easing: Easing.in(),
-                          }).start();
-                        }}
-                      />
-                    </Animated.View>
-                    <Animated.View
-                      style={{
-                        backgroundColor: 'white',
-                        elevation: 5,
-                        height: 128,
-                        bottom: this.state.height,
-                        justifyContent: 'center',
-                      }}>
-                      {this.props.location.getEstimationLoading ? (
-                        <ActivityIndicator size={32} />
-                      ) : this.state.detail.busId ? (
-                        <View style={{flexDirection: 'row', padding: 16}}>
-                          <View>
-                            <Text>
-                              TransBatam :{' '}
-                              {this.state.detail.busId &&
-                                this.state.detail.busId.plateNumber}
-                            </Text>
-                            <Text>
-                              Pengemudi:{' '}
-                              {this.state.detail.busId &&
-                                this.state.detail.busId.driver}
-                            </Text>
-                          </View>
-                          <View style={{alignItems: 'flex-end', flex: 1}}>
-                            <Text>
-                              Jarak :{' '}
-                              {
-                                this.props.location.getEstimation.rows[0]
-                                  .elements[0].distance.text
-                              }
-                            </Text>
-                            <Text>
-                              Waktu:{' '}
-                              {
-                                this.props.location.getEstimation.rows[0]
-                                  .elements[0].duration.text
-                              }
-                            </Text>
-                          </View>
-                        </View>
-                      ) : null}
-                    </Animated.View>
-                  </View>
-                  {this.props.location.getBusLocationLoading && (
-                    <View
-                      style={{
-                        position: 'absolute',
-                        zIndex: 2,
-                        width: Dimensions.get('screen').width,
-                        height: Dimensions.get('screen').height,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                      }}>
-                      <ActivityIndicator color="yellow" size={32} />
-                    </View>
-                  )}
-                  <MapView.Animated
-                    ref={ref => (this.mapViewRef = ref)}
-                    provider="google"
-                    initialRegion={{
-                      latitude: this.state.region.latitude,
-                      longitude: this.state.region.longitude,
-                      latitudeDelta: 0.025,
-                      longitudeDelta: 0.025,
-                    }}
-                    style={{
-                      width: Dimensions.get('screen').width,
-                      height: Dimensions.get('screen').height - 80,
-                      zIndex: 0,
-                      position: 'absolute',
-                    }}>
-                    {this.state.userMarker.latitude !==
-                      this.state.busMarker.latitude && (
-                      <MapViewDirections
-                        destination={this.state.userMarker}
-                        origin={this.state.busMarker}
-                        apikey={GOOGLE_MAPS_APIKEY}
-                        strokeWidth={3}
-                        strokeColor="#072F5F"
-                      />
-                    )}
-                    <Marker
-                      coordinate={{
-                        latitude: this.state.userMarker.latitude,
-                        longitude: this.state.userMarker.longitude,
-                        latitudeDelta: 0.025,
-                        longitudeDelta: 0.025,
-                      }}
-                      onPress={() => {
-                        this.animateToUserMarker();
-                      }}
-                    />
-                    {busLocation.map(el => (
-                      <Marker
-                        key={el._id}
-                        coordinate={{
-                          latitude: el.location.coordinates.latitude,
-                          longitude: el.location.coordinates.longitude,
-                          latitudeDelta: 0.025,
-                          longitudeDelta: 0.025,
-                        }}
-                        image={require('../assets/bus.png')}
-                        onPress={() => {
-                          this.animateToBusMarker(el);
-                        }}
-                      />
-                    ))}
-                  </MapView.Animated>
-                </View>
-                <View style={{height: 80}} />
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </>
+      <Container statusBarStyle="light-content" statusBarColor="#072F5F">
+        <View style={styles.container}>
+          <View style={styles.contentContainer}>
+            {this.state.showActionButton && (
+              <ActionButton
+                onPress={this.showActionButton.bind(this)}
+                style={{zIndex: 1}}
+                buttonColor="#072F5F"
+                renderIcon={() => (
+                  <Icon name="directions" color="yellow" size={24} />
+                )}
+              />
+            )}
+            <Animated.View
+              style={{
+                ...styles.animatedContainer,
+                bottom: this.state.filterHeight,
+              }}>
+              <HalteOptions
+                halte={halte}
+                label="Dari"
+                onValueChange={e => this.setState({origins: e})}
+                selectedValue={this.state.origins}
+              />
+              <HalteOptions
+                halte={halte}
+                label="Tujuan"
+                onValueChange={e => this.setState({destinations: e})}
+                selectedValue={this.state.destinations}
+              />
+              <Button
+                title="Filter"
+                onPress={() => {
+                  this.setState({showActionButton: true});
+                  Animated.timing(this.state.filterHeight, {
+                    toValue: -384,
+                    duration: 1000,
+                    easing: Easing.in(),
+                  }).start();
+                }}
+              />
+            </Animated.View>
+            <Animated.View
+              style={{
+                ...styles.animatedContainerDetail,
+                bottom: this.state.height,
+              }}>
+              {this.props.location.getEstimationLoading ? (
+                <ActivityIndicator size={32} />
+              ) : this.state.detail.busId ? (
+                <InformationCard
+                  detail={this.state.detail}
+                  location={this.props.location}
+                />
+              ) : null}
+            </Animated.View>
+          </View>
+          {this.props.location.getBusLocationLoading && <LoadingIndicator />}
+          <MapView.Animated
+            ref={ref => (this.mapViewRef = ref)}
+            provider="google"
+            initialRegion={{
+              latitude: this.state.region.latitude,
+              longitude: this.state.region.longitude,
+              latitudeDelta: 0.025,
+              longitudeDelta: 0.025,
+            }}
+            style={styles.mapViewContainer}>
+            {this.state.userMarker.latitude !==
+              this.state.busMarker.latitude && (
+              <MapViewDirections
+                destination={this.state.userMarker}
+                origin={this.state.busMarker}
+                apikey={GOOGLE_MAPS_APIKEY}
+                strokeWidth={3}
+                strokeColor="#072F5F"
+              />
+            )}
+            <Marker
+              coordinate={{
+                latitude: this.state.userMarker.latitude,
+                longitude: this.state.userMarker.longitude,
+                latitudeDelta: 0.025,
+                longitudeDelta: 0.025,
+              }}
+              onPress={this.animateToUserMarker.bind(this)}
+            />
+            {busLocation.map(el => (
+              <Marker
+                key={el._id}
+                coordinate={{
+                  latitude: el.location.coordinates.latitude,
+                  longitude: el.location.coordinates.longitude,
+                  latitudeDelta: 0.025,
+                  longitudeDelta: 0.025,
+                }}
+                image={require('../assets/bus.png')}
+                onPress={this.animateToBusMarker.bind(this, el)}
+              />
+            ))}
+          </MapView.Animated>
+        </View>
+      </Container>
     );
   }
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'white',
-    justifyContent: 'flex-start',
-    height: Dimensions.get('screen').height,
+    height: Dimensions.get('screen').height - 80,
   },
-  viewContainer: {
-    padding: 0,
+  contentContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  animatedContainer: {
+    backgroundColor: 'white',
+    elevation: 5,
+    height: 256,
+    zIndex: 6,
+    padding: 16,
+  },
+  animatedContainerDetail: {
+    backgroundColor: 'white',
+    elevation: 5,
+    height: 128,
+    justifyContent: 'center',
+  },
+  mapViewContainer: {
+    width: Dimensions.get('screen').width,
+    height: Dimensions.get('screen').height - 80,
+    zIndex: 0,
+    position: 'absolute',
   },
 });
 
