@@ -38,18 +38,18 @@ class HomeScreen extends Component {
     super(props);
     this.state = {
       region: {
-        latitude: 1.1301,
-        longitude: 104.0529,
-        latitudeDelta: 1,
-        longitudeDelta: 1,
-      },
-      coordinate: {
         latitude: 90,
         longitude: 180,
         latitudeDelta: 1,
         longitudeDelta: 1,
       },
-      destination: {
+      userMarker: {
+        latitude: 90,
+        longitude: 180,
+        latitudeDelta: 1,
+        longitudeDelta: 1,
+      },
+      busMarker: {
         latitude: 90,
         longitude: 180,
         latitudeDelta: 1,
@@ -69,7 +69,10 @@ class HomeScreen extends Component {
     this.props.getBusLocation();
     const listen = socket('https://transbatam-api.herokuapp.com');
     listen.on('location', e => {
-      if (e.type === 'ADD_LOCATION') {
+      if (
+        e.type === 'ADD_LOCATION' &&
+        this.props.location.getBusLocation.length > 0
+      ) {
         this.update(e.payload);
       }
     });
@@ -93,31 +96,7 @@ class HomeScreen extends Component {
   getCurrentLocation = () => {
     Geolocation.getCurrentPosition(
       success => {
-        this.mapViewRef._component.animateToRegion(
-          {
-            latitude: success.coords.latitude,
-            longitude: success.coords.longitude,
-            latitudeDelta: 0.025,
-            longitudeDelta: 0.025,
-          },
-          500,
-        );
-        setTimeout(() => {
-          this.setState({
-            region: {
-              latitude: success.coords.latitude,
-              longitude: success.coords.longitude,
-              latitudeDelta: 0,
-              longitudeDelta: 0,
-            },
-            coordinate: {
-              latitude: success.coords.latitude,
-              longitude: success.coords.longitude,
-              latitudeDelta: 0,
-              longitudeDelta: 0,
-            },
-          });
-        }, 500);
+        this.animateRegion(success.coords.latitude, success.coords.longitude);
       },
       error => {
         console.log(error);
@@ -130,55 +109,204 @@ class HomeScreen extends Component {
     );
   };
 
+  animateRegion = (lat, long) => {
+    this.mapViewRef._component.animateToRegion(
+      {
+        latitude: lat,
+        longitude: long,
+        latitudeDelta: 0.025,
+        longitudeDelta: 0.025,
+      },
+      1000,
+    );
+    setTimeout(() => {
+      this.setState({
+        region: {
+          latitude: lat,
+          longitude: long,
+          latitudeDelta: 0,
+          longitudeDelta: 0,
+        },
+        userMarker: {
+          latitude: lat,
+          longitude: long,
+          latitudeDelta: 0,
+          longitudeDelta: 0,
+        },
+      });
+    }, 1000);
+  };
+
+  calculateRegionBetweenCoordinates = points => {
+    let minX, maxX, minY, maxY;
+    (point => {
+      minX = point.latitude;
+      maxX = point.latitude;
+      minY = point.longitude;
+      maxY = point.longitude;
+    })(points[0]);
+
+    points.map(point => {
+      minX = Math.min(minX, point.latitude);
+      maxX = Math.max(maxX, point.latitude);
+      minY = Math.min(minY, point.longitude);
+      maxY = Math.max(maxY, point.longitude);
+    });
+
+    const midX = (minX + maxX) / 2;
+    const midY = (minY + maxY) / 2;
+    const deltaX = maxX - minX;
+    const deltaY = maxY - minY;
+
+    return {
+      latitude: midX,
+      longitude: midY,
+      latitudeDelta: deltaX + 0.005,
+      longitudeDelta: deltaY + 0.005,
+    };
+  };
+
   update = lastLocation => {
     const {latitude, longitude} = lastLocation.location.coordinates;
-    this.moveMarker(
-      latitude,
-      longitude,
-      500,
-      this[lastLocation.busId],
-      lastLocation.busId,
-    );
+    this.moveMarker(latitude, longitude, 1000, lastLocation.busId);
     this.props.updateBusLocation(
       this.props.location.getBusLocation,
       lastLocation,
     );
   };
 
-  moveMarker = (latitude, longitude, duration, marker, busId) => {
-    if (marker) {
-      marker.animateMarkerToCoordinate(
-        {
-          latitude,
-          longitude,
-        },
-        duration,
-      );
-      if (this.state.detail.busId) {
-        if (this.state.detail.busId._id === busId) {
-          this.mapViewRef._component.animateToRegion(
+  moveMarker = (latitude, longitude, duration, busId) => {
+    if (this.state.detail.busId) {
+      if (this.state.detail.busId._id === busId) {
+        const coord = this.calculateRegionBetweenCoordinates([
+          {
+            latitude,
+            longitude,
+          },
+          {
+            latitude: this.state.userMarker.latitude,
+            longitude: this.state.userMarker.longitude,
+          },
+        ]);
+        this.mapViewRef._component.animateToRegion(coord, 1000);
+        setTimeout(() => {
+          this.props.getEstimation(
             {
+              latitude,
+              longitude,
+            },
+            {
+              latitude: this.state.userMarker.latitude,
+              longitude: this.state.userMarker.longitude,
+            },
+          );
+          this.setState({
+            busMarker: {
               latitude,
               longitude,
               latitudeDelta: 0.025,
               longitudeDelta: 0.025,
             },
-            500,
-          );
-          setTimeout(() => {
-            this.props.getEstimation(
-              {
-                latitude: this.state.coordinate.latitude,
-                longitude: this.state.coordinate.longitude,
-              },
-              {
-                latitude,
-                longitude,
-              },
-            );
-          }, 500);
-        }
+          });
+        }, 1000);
       }
+    }
+  };
+
+  animateToUserMarker = () => {
+    this.mapViewRef._component.animateToRegion(
+      {
+        latitude: this.state.userMarker.latitude,
+        longitude: this.state.userMarker.longitude,
+        latitudeDelta: 0.025,
+        longitudeDelta: 0.025,
+      },
+      1000,
+    );
+    setTimeout(() => {
+      this.setState({
+        region: {
+          latitude: this.state.userMarker.latitude,
+          longitude: this.state.userMarker.longitude,
+          latitudeDelta: 0.025,
+          longitudeDelta: 0.025,
+        },
+        busMarker: {
+          latitude: this.state.userMarker.latitude,
+          longitude: this.state.userMarker.longitude,
+          latitudeDelta: 0.025,
+          longitudeDelta: 0.025,
+        },
+        detail: {},
+        showActionButton: true,
+      });
+    }, 1000);
+    Animated.timing(this.state.height, {
+      toValue: -128,
+      duration: 1000,
+      easing: Easing.in(),
+    }).start();
+    Animated.timing(this.state.filterHeight, {
+      toValue: -384,
+      duration: 1000,
+      easing: Easing.in(),
+    }).start();
+  };
+
+  animateToBusMarker = el => {
+    const coord = this.calculateRegionBetweenCoordinates([
+      {
+        latitude: el.location.coordinates.latitude,
+        longitude: el.location.coordinates.longitude,
+      },
+      {
+        latitude: this.state.userMarker.latitude,
+        longitude: this.state.userMarker.longitude,
+      },
+    ]);
+    if (
+      // eslint-disable-next-line eqeqeq
+      el.location.coordinates.latitude != this.state.region.latitude
+    ) {
+      this.mapViewRef._component.animateToRegion(coord, 1000);
+      setTimeout(() => {
+        this.setState({
+          region: {
+            latitude: el.location.coordinates.latitude,
+            longitude: el.location.coordinates.longitude,
+            latitudeDelta: 0.025,
+            longitudeDelta: 0.025,
+          },
+          busMarker: {
+            latitude: el.location.coordinates.latitude,
+            longitude: el.location.coordinates.longitude,
+            latitudeDelta: 0.025,
+            longitudeDelta: 0.025,
+          },
+          detail: el,
+          showActionButton: false,
+        });
+        this.props.getEstimation(
+          {
+            latitude: this.state.userMarker.latitude,
+            longitude: this.state.userMarker.longitude,
+          },
+          {
+            latitude: el.location.coordinates.latitude,
+            longitude: el.location.coordinates.longitude,
+          },
+        );
+      }, 1000);
+      Animated.timing(this.state.height, {
+        toValue: 0,
+        duration: 1000,
+        easing: Easing.in(),
+      }).start();
+      Animated.timing(this.state.filterHeight, {
+        toValue: -384,
+        duration: 1000,
+        easing: Easing.in(),
+      }).start();
     }
   };
 
@@ -228,7 +356,7 @@ class HomeScreen extends Component {
                           this.setState({showActionButton: false});
                           Animated.timing(this.state.filterHeight, {
                             toValue: -128,
-                            duration: 500,
+                            duration: 1000,
                             easing: Easing.in(),
                           }).start();
                         }}
@@ -255,8 +383,9 @@ class HomeScreen extends Component {
                           onValueChange={e => {
                             this.setState({origins: e});
                           }}>
-                          {halte.map(el => (
-                            <Picker.Item label={el} value={el} />
+                          <Picker.Item label="Pilih Halte" value="" />
+                          {halte.map((el, index) => (
+                            <Picker.Item key={index} label={el} value={el} />
                           ))}
                         </Picker>
                       </View>
@@ -267,8 +396,9 @@ class HomeScreen extends Component {
                           onValueChange={e => {
                             this.setState({destinations: e});
                           }}>
-                          {halte.map(el => (
-                            <Picker.Item label={el} value={el} />
+                          <Picker.Item label="Pilih Halte" value="" />
+                          {halte.map((el, index) => (
+                            <Picker.Item key={index} label={el} value={el} />
                           ))}
                         </Picker>
                       </View>
@@ -278,7 +408,7 @@ class HomeScreen extends Component {
                           this.setState({showActionButton: true});
                           Animated.timing(this.state.filterHeight, {
                             toValue: -384,
-                            duration: 500,
+                            duration: 1000,
                             easing: Easing.in(),
                           }).start();
                         }}
@@ -357,11 +487,11 @@ class HomeScreen extends Component {
                       zIndex: 0,
                       position: 'absolute',
                     }}>
-                    {this.state.coordinate.latitude !==
-                      this.state.destination.latitude && (
+                    {this.state.userMarker.latitude !==
+                      this.state.busMarker.latitude && (
                       <MapViewDirections
-                        destination={this.state.coordinate}
-                        origin={this.state.destination}
+                        destination={this.state.userMarker}
+                        origin={this.state.busMarker}
                         apikey={GOOGLE_MAPS_APIKEY}
                         strokeWidth={3}
                         strokeColor="#072F5F"
@@ -369,54 +499,17 @@ class HomeScreen extends Component {
                     )}
                     <Marker
                       coordinate={{
-                        latitude: this.state.coordinate.latitude,
-                        longitude: this.state.coordinate.longitude,
+                        latitude: this.state.userMarker.latitude,
+                        longitude: this.state.userMarker.longitude,
                         latitudeDelta: 0.025,
                         longitudeDelta: 0.025,
                       }}
                       onPress={() => {
-                        this.mapViewRef._component.animateToRegion(
-                          {
-                            latitude: this.state.coordinate.latitude,
-                            longitude: this.state.coordinate.longitude,
-                            latitudeDelta: 0.025,
-                            longitudeDelta: 0.025,
-                          },
-                          500,
-                        );
-                        setTimeout(() => {
-                          this.setState({
-                            region: {
-                              latitude: this.state.coordinate.latitude,
-                              longitude: this.state.coordinate.longitude,
-                              latitudeDelta: 0.025,
-                              longitudeDelta: 0.025,
-                            },
-                            destination: {
-                              latitude: this.state.coordinate.latitude,
-                              longitude: this.state.coordinate.longitude,
-                              latitudeDelta: 0.025,
-                              longitudeDelta: 0.025,
-                            },
-                            detail: {},
-                            showActionButton: true,
-                          });
-                        }, 500);
-                        Animated.timing(this.state.height, {
-                          toValue: -128,
-                          duration: 500,
-                          easing: Easing.in(),
-                        }).start();
-                        Animated.timing(this.state.filterHeight, {
-                          toValue: -384,
-                          duration: 500,
-                          easing: Easing.in(),
-                        }).start();
+                        this.animateToUserMarker();
                       }}
                     />
                     {busLocation.map(el => (
                       <Marker
-                        ref={ref => (this[el.busId._id] = ref)}
                         key={el._id}
                         coordinate={{
                           latitude: el.location.coordinates.latitude,
@@ -426,59 +519,7 @@ class HomeScreen extends Component {
                         }}
                         image={require('../assets/bus.png')}
                         onPress={() => {
-                          if (
-                            // eslint-disable-next-line eqeqeq
-                            el.location.coordinates.latitude !=
-                            this.state.region.latitude
-                          ) {
-                            this.mapViewRef._component.animateToRegion(
-                              {
-                                latitude: el.location.coordinates.latitude,
-                                longitude: el.location.coordinates.longitude,
-                                latitudeDelta: 0.025,
-                                longitudeDelta: 0.025,
-                              },
-                              500,
-                            );
-                            setTimeout(() => {
-                              this.setState({
-                                region: {
-                                  latitude: el.location.coordinates.latitude,
-                                  longitude: el.location.coordinates.longitude,
-                                  latitudeDelta: 0.025,
-                                  longitudeDelta: 0.025,
-                                },
-                                destination: {
-                                  latitude: el.location.coordinates.latitude,
-                                  longitude: el.location.coordinates.longitude,
-                                  latitudeDelta: 0.025,
-                                  longitudeDelta: 0.025,
-                                },
-                                detail: el,
-                                showActionButton: false,
-                              });
-                              this.props.getEstimation(
-                                {
-                                  latitude: this.state.coordinate.latitude,
-                                  longitude: this.state.coordinate.longitude,
-                                },
-                                {
-                                  latitude: el.location.coordinates.latitude,
-                                  longitude: el.location.coordinates.longitude,
-                                },
-                              );
-                            }, 500);
-                            Animated.timing(this.state.height, {
-                              toValue: 0,
-                              duration: 500,
-                              easing: Easing.in(),
-                            }).start();
-                            Animated.timing(this.state.filterHeight, {
-                              toValue: -384,
-                              duration: 500,
-                              easing: Easing.in(),
-                            }).start();
-                          }
+                          this.animateToBusMarker(el);
                         }}
                       />
                     ))}
