@@ -15,7 +15,7 @@ function* fetchBusLocation() {
       }
     })
     .catch(error => {
-      return {type: 'BUS_LOCATION_ERROR', payload: error};
+      return {type: 'BUS_LOCATION_ERROR', payload: error.toString()};
     });
   yield put(result);
 }
@@ -44,7 +44,7 @@ function* fetchEstimation(params) {
       }
     })
     .catch(error => {
-      return {type: 'ESTIMATION_ERROR', payload: error};
+      return {type: 'ESTIMATION_ERROR', payload: error.toString()};
     });
   yield put(result);
 }
